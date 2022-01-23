@@ -68,11 +68,8 @@ lazyProduct l   = product l 1
 "ccaabb"
 -}
 duplicate :: [a] -> [a]
-duplicate l = dup l []
-    where
-        dup :: [a] -> [a] -> [a]
-        dup [] acc      = acc
-        dup (x:xs) acc  = dup xs (acc ++ [x, x])
+duplicate [] = []
+duplicate (x:xs)  = (x:x:duplicate xs)
 
 {- | Implement function that takes index and a list and removes the
 element at the given position. Additionally, this function should also
@@ -204,7 +201,14 @@ False
 True
 -}
 isIncreasing :: [Int] -> Bool
-isIncreasing = error "TODO"
+isIncreasing [] = False
+isIncreasing (x:xs) = increasing x xs
+    where
+        increasing :: Int -> [Int] -> Bool
+        increasing _ [] = True
+        increasing x (y:ys)
+            | x <= y    = increasing y ys
+            | otherwise = False
 
 {- | Implement a function that takes two lists, sorted in the
 increasing order, and merges them into new list, also sorted in the
@@ -217,7 +221,13 @@ verify that.
 [1,2,3,4,7]
 -}
 merge :: [Int] -> [Int] -> [Int]
-merge = error "TODO"
+merge [] ys = ys
+merge xs [] = xs
+merge lx@(x:xs) ly@(y:ys)
+    | x > y     = (y:merge lx ys)
+    | x == y    = (x:y:merge xs ys)
+    | x < y     = (x:merge xs ly)
+    | otherwise = []
 
 {- | Implement the "Merge Sort" algorithm in Haskell. The @mergeSort@
 function takes a list of numbers and returns a new list containing the
@@ -234,8 +244,19 @@ The algorithm of merge sort is the following:
 [1,2,3]
 -}
 mergeSort :: [Int] -> [Int]
-mergeSort = error "TODO"
-
+mergeSort xs
+    | length xs < 2 = xs
+    | otherwise     = merge (mergeS first) (mergeS second)
+    where
+      half    = length xs `div` 2
+      first   = take half xs
+      second  = drop half xs
+      mergeS :: [Int] -> [Int]
+      mergeS l@[x] = l
+      mergeS (x:y:xs)
+        | x > y     = (y:mergeS (x:xs))
+        | x == y    = (x:y:mergeS xs)
+        | x < y     = (x:mergeS (y:xs))
 
 {- | Haskell is famous for being a superb language for implementing
 compilers and interpreters to other programming languages. In the next
@@ -287,7 +308,16 @@ data EvalError
 It returns either a successful evaluation result or an error.
 -}
 eval :: Variables -> Expr -> Either EvalError Int
-eval = error "TODO"
+eval _ (Lit x)      = Right x
+eval vars (Var v)   = case lookup v vars of
+                        Nothing -> Left (VariableNotFound v)
+                        Just x -> Right x
+eval vars (Add opl opr) = (eval vars opl) `plus` (eval vars opr)
+     where
+        plus :: Either EvalError Int -> Either EvalError Int -> Either EvalError Int
+        plus (Left x) _ = Left x
+        plus _ (Left x) = Left x
+        plus (Right x) (Right y) = Right (x + y)
 
 {- | Compilers also perform optimizations! One of the most common
 optimizations is "Constant Folding". It performs arithmetic operations
@@ -311,4 +341,19 @@ Write a function that takes and expression and performs "Constant
 Folding" optimization on the given expression.
 -}
 constantFolding :: Expr -> Expr
-constantFolding = error "TODO"
+constantFolding expr = rewrite (vars expr) (lits expr)
+    where
+        lits :: Expr -> Int
+        lits (Lit x)        = x
+        lits (Var _)        = 0
+        lits (Add opl opr)  = lits opl + lits opr
+
+        vars :: Expr -> [String]
+        vars (Lit _)        = []
+        vars (Var x)        = [x]
+        vars (Add opl opr)  = vars opl ++ vars opr
+
+        rewrite :: [String] -> (Int) -> Expr
+        rewrite (v:[]) 0  = (Var v)
+        rewrite (v:[]) i  = (Add (Var v) (Lit i))
+        rewrite (v:vs) i  = (Add (Var v) (rewrite vs i))
