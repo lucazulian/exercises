@@ -173,6 +173,16 @@ You're free to define any helper functions.
        treasure besides gold (if you already haven't done this).
 -}
 
+newtype Gold = MkGold Int deriving (Show)
+newtype Experience = Experience Int deriving (Show)
+data DragonColor = Red | Black | Green
+data Treasure = Treasure deriving (Show)
+
+data Chest = Chest
+    { gold      :: Gold
+    , treasuse  :: Treasure
+    } deriving (Show)
+
 -- some help in the beginning ;)
 data Knight = Knight
     { knightHealth    :: Int
@@ -180,7 +190,37 @@ data Knight = Knight
     , knightEndurance :: Int
     }
 
-dragonFight = error "TODO"
+data Dragon = Dragon
+    { dragonHealth    :: Int
+    , dragonAttack    :: Int
+    , dragonEndurance :: Int
+    , dragonColor     :: DragonColor
+    , dragonFirePower :: Int
+    , dragonChest     :: Chest
+    }
+
+data FightOutcome = Win Chest Experience
+                  | Loss
+                  | RunAway
+                  deriving (Show)
+
+dead :: Int -> Bool
+dead = (< 0)
+
+experience :: DragonColor -> Experience
+experience Red    = Experience 100
+experience Black  = Experience 150
+experience Green  = Experience 250
+
+dragonFight :: Knight -> Dragon -> FightOutcome
+dragonFight k d = fight k d 10
+    where
+        fight :: Knight -> Dragon -> Int -> FightOutcome
+        fight k _ _ | dead (knightHealth k) = Loss
+        fight _ d _ | dead (dragonHealth d) = Win (dragonChest d) (experience $ dragonColor d)
+        fight k _ _ | (knightEndurance k) <= 0  = RunAway
+        fight k d 0 = fight (k { knightHealth = knightHealth k - dragonFirePower d }) d 10
+        fight k d s = fight (k { knightEndurance = knightEndurance k - 1}) (d { dragonHealth = (dragonHealth d) - (knightAttack k) }) (s - 1)
 
 ----------------------------------------------------------------------------
 -- Extra Challenges
@@ -206,8 +246,8 @@ isIncreasing (x:xs) = increasing x xs
     where
         increasing :: Int -> [Int] -> Bool
         increasing _ [] = True
-        increasing x (y:ys)
-            | x <= y    = increasing y ys
+        increasing z (y:ys)
+            | z <= y    = increasing y ys
             | otherwise = False
 
 {- | Implement a function that takes two lists, sorted in the
@@ -227,7 +267,6 @@ merge lx@(x:xs) ly@(y:ys)
     | x > y     = (y:merge lx ys)
     | x == y    = (x:y:merge xs ys)
     | x < y     = (x:merge xs ly)
-    | otherwise = []
 
 {- | Implement the "Merge Sort" algorithm in Haskell. The @mergeSort@
 function takes a list of numbers and returns a new list containing the
