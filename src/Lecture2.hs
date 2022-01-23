@@ -52,7 +52,7 @@ zero, you can stop calculating product and return 0 immediately.
 84
 -}
 lazyProduct :: [Int] -> Int
-lazyProduct []  = 0
+lazyProduct []  = 1
 lazyProduct l   = product l 1
     where
         product :: [Int] -> Int -> Int
@@ -82,6 +82,7 @@ return the removed element.
 (Nothing,[1,2,3,4,5])
 -}
 removeAt :: Int -> [a] -> (Maybe a, [a])
+removeAt index l | index < 0 = (Nothing, l)
 removeAt index l = rem 0 l []
     where
       rem :: Int -> [a] -> [a] -> (Maybe a, [a])
