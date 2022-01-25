@@ -194,9 +194,7 @@ data Knight = Knight
 data Dragon = Dragon
     { dragonHealth    :: Int
     , dragonAttack    :: Int
-    , dragonEndurance :: Int
     , dragonColor     :: DragonColor
-    , dragonFirePower :: Int
     , dragonChest     :: Chest
     }
 
@@ -214,13 +212,13 @@ experience Black  = Experience 150
 experience Green  = Experience 250
 
 dragonFight :: Knight -> Dragon -> FightOutcome
-dragonFight k d = fight k d 10
+dragonFight knight dragon = fight knight dragon 10
     where
         fight :: Knight -> Dragon -> Int -> FightOutcome
         fight k _ _ | dead (knightHealth k) = Loss
         fight _ d _ | dead (dragonHealth d) = Win (dragonChest d) (experience $ dragonColor d)
         fight k _ _ | (knightEndurance k) <= 0  = RunAway
-        fight k d 0 = fight (k { knightHealth = knightHealth k - dragonFirePower d }) d 10
+        fight k d 0 = fight (k { knightHealth = knightHealth k - dragonAttack d }) d 10
         fight k d s = fight (k { knightEndurance = knightEndurance k - 1}) (d { dragonHealth = (dragonHealth d) - (knightAttack k) }) (s - 1)
 
 ----------------------------------------------------------------------------
