@@ -113,10 +113,12 @@ newtype Gold = Gold
 
 -- | Addition of gold coins.
 instance Semigroup Gold where
-
+    (<>) :: Gold -> Gold -> Gold
+    Gold x <> Gold y = Gold (x + y)
 
 instance Monoid Gold where
-
+    mempty :: Gold
+    mempty = Gold 0
 
 {- | A reward for completing a difficult quest says how much gold
 you'll receive and whether you'll get a special reward.
@@ -130,10 +132,12 @@ data Reward = Reward
     } deriving (Show, Eq)
 
 instance Semigroup Reward where
-
+    (<>) :: Reward -> Reward -> Reward
+    Reward xg xb <> Reward yg yb = Reward (xg <> yg) (xb || yb)
 
 instance Monoid Reward where
-
+    mempty :: Reward
+    mempty = Reward mempty False
 
 {- | 'List1' is a list that contains at least one element.
 -}
@@ -142,11 +146,15 @@ data List1 a = List1 a [a]
 
 -- | This should be list append.
 instance Semigroup (List1 a) where
-
+    (<>) :: List1 a -> List1 a -> List1 a
+    List1 x xs <> List1 y ys = List1 x (xs <> (y : ys))
 
 {- | Does 'List1' have the 'Monoid' instance? If no then why?
 
 instance Monoid (List1 a) where
+
+No because I think the is no way to create the `List1 a` neutral value as
+there is no way to know if exists the neutral value for `a`
 -}
 
 {- | When fighting a monster, you can either receive some treasure or
@@ -164,11 +172,16 @@ monsters, you should get a combined treasure and not just the first
 🕯 HINT: You may need to add additional constraints to this instance
   declaration.
 -}
-instance Semigroup (Treasure a) where
+instance Semigroup a => Semigroup (Treasure a) where
+    (<>) :: Treasure a -> Treasure a -> Treasure a
+    NoTreasure <> NoTreasure = NoTreasure
+    x@(SomeTreasure _) <> NoTreasure = x
+    NoTreasure <> x@(SomeTreasure _) = x
+    (SomeTreasure x) <> (SomeTreasure y) = SomeTreasure (x <> y)
 
-
-instance Monoid (Treasure a) where
-
+instance Semigroup a => Monoid (Treasure a) where
+    mempty :: Treasure a
+    mempty = NoTreasure
 
 {- | Abstractions are less helpful if we can't write functions that
 use them!
@@ -186,7 +199,14 @@ together only different elements.
 Product {getProduct = 6}
 
 -}
-appendDiff3 = error "TODO"
+
+appendDiff3 :: (Eq a, Semigroup a) => a -> a -> a -> a
+appendDiff3 x y z
+    | x == y && y == z  = x
+    | x == y            = y <> z
+    | y == z            = x <> z
+    | x == z            = x <> y
+    | otherwise         = x <> y <> z
 
 {-
 
