@@ -236,10 +236,28 @@ types that can have such an instance.
 -}
 
 -- instance Foldable Weekday where
+-- this instance does not make sense since Weekday it's an enumeration
+
 -- instance Foldable Gold where
+-- this instance does not make sense since it would be an implementation of Foldable for Int
+
 -- instance Foldable Reward where
--- instance Foldable List1 where
--- instance Foldable Treasure where
+-- this instance does not make sense since it would be an implementation of Foldable for Int
+
+instance Foldable List1 where
+    foldr :: (a -> b -> b) -> b -> List1 a -> b
+    foldr f z (List1 x xs) = f x $ foldr f z xs
+
+    foldMap :: Monoid m => (a -> m) -> List1 a -> m
+    foldMap f = foldr ((<>) . f) mempty
+
+instance Foldable Treasure where
+    foldr :: (a -> b -> b) -> b -> Treasure a -> b
+    foldr f z (SomeTreasure x) = f x z
+    foldr _ z NoTreasure = z
+
+    foldMap :: Monoid m => (a -> m) -> Treasure a -> m
+    foldMap f = foldr ((<>) . f) mempty
 
 {-
 
@@ -252,10 +270,22 @@ types that can have such an instance.
 -}
 
 -- instance Functor Weekday where
+-- this instance does not make sense since Weekday it's an enumeration
+
 -- instance Functor Gold where
+-- this instance does not make sense since it would be an implementation of Functor for Int
+
 -- instance Functor Reward where
--- instance Functor List1 where
--- instance Functor Treasure where
+-- this instance does not make sense since it would be an implementation of Functor for Int
+
+instance Functor List1 where
+    fmap :: (a -> b) -> List1 a -> List1 b
+    fmap f (List1 x xs) = List1 (f x) (fmap f xs)
+
+instance Functor Treasure where
+    fmap :: (a -> b) -> Treasure a -> Treasure b
+    fmap _ NoTreasure       = NoTreasure
+    fmap f (SomeTreasure x) = SomeTreasure $ f x
 
 {- | Functions are first-class values in Haskell. This means that they
 can be even stored inside other data types as well!
@@ -274,4 +304,5 @@ Just [8,9,10]
 [8,20,3]
 
 -}
-apply = error "TODO"
+apply :: Functor c => a -> c (a -> b) -> c b
+apply x fn = (\f -> f x) <$> fn
