@@ -52,7 +52,13 @@ zero, you can stop calculating product and return 0 immediately.
 84
 -}
 lazyProduct :: [Int] -> Int
-lazyProduct = error "TODO"
+lazyProduct []  = 1
+lazyProduct l   = product l 1
+    where
+        product :: [Int] -> Int -> Int
+        product [] acc      = acc
+        product (0:_) _     = 0
+        product (x:xs) acc  = product xs (acc * x)
 
 {- | Implement a function that duplicates every element in the list.
 
@@ -62,7 +68,8 @@ lazyProduct = error "TODO"
 "ccaabb"
 -}
 duplicate :: [a] -> [a]
-duplicate = error "TODO"
+duplicate [] = []
+duplicate (x:xs)  = (x:x:duplicate xs)
 
 {- | Implement function that takes index and a list and removes the
 element at the given position. Additionally, this function should also
@@ -74,7 +81,15 @@ return the removed element.
 >>> removeAt 10 [1 .. 5]
 (Nothing,[1,2,3,4,5])
 -}
-removeAt = error "TODO"
+removeAt :: Int -> [a] -> (Maybe a, [a])
+removeAt index l | index < 0 = (Nothing, l)
+removeAt index l = rem 0 l []
+    where
+      rem :: Int -> [a] -> [a] -> (Maybe a, [a])
+      rem _ [] acc     = (Nothing, acc)
+      rem i (x:xs) acc
+          | i == index = (Just x, acc ++ xs)
+          | otherwise  = rem (i + 1) xs (acc ++ [x])
 
 {- | Write a function that takes a list of lists and returns only
 lists of even lengths.
@@ -85,7 +100,8 @@ lists of even lengths.
 ♫ NOTE: Use eta-reduction and function composition (the dot (.) operator)
   in this function.
 -}
-evenLists = error "TODO"
+evenLists :: [[a]] -> [[a]]
+evenLists = filter (even . length)
 
 {- | The @dropSpaces@ function takes a string containing a single word
 or number surrounded by spaces and removes all leading and trailing
@@ -101,7 +117,8 @@ spaces.
 
 🕯 HINT: look into Data.Char and Prelude modules for functions you may use.
 -}
-dropSpaces = error "TODO"
+dropSpaces :: String -> String
+dropSpaces = head . words
 
 {- |
 
@@ -157,6 +174,16 @@ You're free to define any helper functions.
        treasure besides gold (if you already haven't done this).
 -}
 
+newtype Gold = MkGold Int deriving (Show)
+newtype Experience = Experience Int deriving (Show)
+data DragonColor = Red | Black | Green
+data Treasure = Treasure deriving (Show)
+
+data Chest = Chest
+    { gold      :: Gold
+    , treasuse  :: Treasure
+    } deriving (Show)
+
 -- some help in the beginning ;)
 data Knight = Knight
     { knightHealth    :: Int
@@ -164,7 +191,35 @@ data Knight = Knight
     , knightEndurance :: Int
     }
 
-dragonFight = error "TODO"
+data Dragon = Dragon
+    { dragonHealth    :: Int
+    , dragonAttack    :: Int
+    , dragonColor     :: DragonColor
+    , dragonChest     :: Chest
+    }
+
+data FightOutcome = Win Chest Experience
+                  | Loss
+                  | RunAway
+                  deriving (Show)
+
+dead :: Int -> Bool
+dead = (< 0)
+
+experience :: DragonColor -> Experience
+experience Red    = Experience 100
+experience Black  = Experience 150
+experience Green  = Experience 250
+
+dragonFight :: Knight -> Dragon -> FightOutcome
+dragonFight knight dragon = fight knight dragon 10
+    where
+        fight :: Knight -> Dragon -> Int -> FightOutcome
+        fight k _ _ | dead (knightHealth k) = Loss
+        fight _ d _ | dead (dragonHealth d) = Win (dragonChest d) (experience $ dragonColor d)
+        fight k _ _ | (knightEndurance k) <= 0  = RunAway
+        fight k d 0 = fight (k { knightHealth = knightHealth k - dragonAttack d }) d 10
+        fight k d s = fight (k { knightEndurance = knightEndurance k - 1}) (d { dragonHealth = (dragonHealth d) - (knightAttack k) }) (s - 1)
 
 ----------------------------------------------------------------------------
 -- Extra Challenges
@@ -185,7 +240,14 @@ False
 True
 -}
 isIncreasing :: [Int] -> Bool
-isIncreasing = error "TODO"
+isIncreasing [] = False
+isIncreasing (x:xs) = increasing x xs
+    where
+        increasing :: Int -> [Int] -> Bool
+        increasing _ [] = True
+        increasing z (y:ys)
+            | z <= y    = increasing y ys
+            | otherwise = False
 
 {- | Implement a function that takes two lists, sorted in the
 increasing order, and merges them into new list, also sorted in the
@@ -198,7 +260,12 @@ verify that.
 [1,2,3,4,7]
 -}
 merge :: [Int] -> [Int] -> [Int]
-merge = error "TODO"
+merge [] ys = ys
+merge xs [] = xs
+merge lx@(x:xs) ly@(y:ys)
+    | x > y     = (y:merge lx ys)
+    | x == y    = (x:y:merge xs ys)
+    | x < y     = (x:merge xs ly)
 
 {- | Implement the "Merge Sort" algorithm in Haskell. The @mergeSort@
 function takes a list of numbers and returns a new list containing the
@@ -215,8 +282,19 @@ The algorithm of merge sort is the following:
 [1,2,3]
 -}
 mergeSort :: [Int] -> [Int]
-mergeSort = error "TODO"
-
+mergeSort xs
+    | length xs < 2 = xs
+    | otherwise     = merge (mergeS first) (mergeS second)
+    where
+      half    = length xs `div` 2
+      first   = take half xs
+      second  = drop half xs
+      mergeS :: [Int] -> [Int]
+      mergeS l@[x] = l
+      mergeS (x:y:xs)
+        | x > y     = (y:mergeS (x:xs))
+        | x == y    = (x:y:mergeS xs)
+        | x < y     = (x:mergeS (y:xs))
 
 {- | Haskell is famous for being a superb language for implementing
 compilers and interpreters to other programming languages. In the next
@@ -268,7 +346,16 @@ data EvalError
 It returns either a successful evaluation result or an error.
 -}
 eval :: Variables -> Expr -> Either EvalError Int
-eval = error "TODO"
+eval _ (Lit x)      = Right x
+eval vars (Var v)   = case lookup v vars of
+                        Nothing -> Left (VariableNotFound v)
+                        Just x -> Right x
+eval vars (Add opl opr) = (eval vars opl) `plus` (eval vars opr)
+     where
+        plus :: Either EvalError Int -> Either EvalError Int -> Either EvalError Int
+        plus (Left x) _ = Left x
+        plus _ (Left x) = Left x
+        plus (Right x) (Right y) = Right (x + y)
 
 {- | Compilers also perform optimizations! One of the most common
 optimizations is "Constant Folding". It performs arithmetic operations
@@ -292,4 +379,19 @@ Write a function that takes and expression and performs "Constant
 Folding" optimization on the given expression.
 -}
 constantFolding :: Expr -> Expr
-constantFolding = error "TODO"
+constantFolding expr = rewrite (vars expr) (lits expr)
+    where
+        lits :: Expr -> Int
+        lits (Lit x)        = x
+        lits (Var _)        = 0
+        lits (Add opl opr)  = lits opl + lits opr
+
+        vars :: Expr -> [String]
+        vars (Lit _)        = []
+        vars (Var x)        = [x]
+        vars (Add opl opr)  = vars opl ++ vars opr
+
+        rewrite :: [String] -> (Int) -> Expr
+        rewrite (v:[]) 0  = (Var v)
+        rewrite (v:[]) i  = (Add (Var v) (Lit i))
+        rewrite (v:vs) i  = (Add (Var v) (rewrite vs i))
